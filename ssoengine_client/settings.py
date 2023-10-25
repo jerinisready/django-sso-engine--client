@@ -111,6 +111,7 @@ AUTH_USER_MODEL = 'users.User'
 ##############################
 # DJ SSO
 DJ_SSO_API_KEY = "asdf1234"
+DJ_SSO_API_SECRET = "asdf1234"
 
 
 
