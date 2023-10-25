@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.shortcuts import render
 
-from djsso.service import DjSSO
+from ssoengine.service import DjSSO
 
 
 # Create your views here.
