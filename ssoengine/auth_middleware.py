@@ -20,7 +20,7 @@ class SSOAuthBackend(BaseBackend):
         """
         Update user details in case of registration, or on the login after update happens on the remote server.
         """
-        user_features = self.sso_agent.get_user_details()['auth']['features']
+        user_features = self.sso_agent.get_user_details()['features']
         commit = False
         for key in user_features:
             if key in self.sso_agent.get_registration_features():

@@ -36,7 +36,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.staticfiles',
     'apps.users',
-    'apps.leave',
 ]
 
 MIDDLEWARE = [
@@ -107,6 +106,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL = 'users.User'
+
+AUTHENTICATION_BACKENDS = [
+    'ssoengine.auth_middleware.SSOAuthBackend',  # Replace 'yourapp' with the name of your app
+    'django.contrib.auth.backends.ModelBackend',  # Default Django authentication backend
+]
+
 
 ##############################
 # DJ SSO

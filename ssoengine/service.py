@@ -2,11 +2,11 @@ import requests
 
 
 class SSOAgent(object):
-    BASE_URL = 'http://localhost:8000'          # endpoint of deployed sso service
+    ENDPOINT_URL = 'http://localhost:8000'          # endpoint of deployed sso service
     registration_features = ('username', 'email', 'first_name', 'last_name')
     ROUTE = {
         'web': '/sso/web/{api_key}/',
-        'verify': '/sso/web/{token}/'
+        'verify': '/sso/web/{token}/verify-details/'
     }
 
     def __init__(self, api_key=None, api_secret=None, endpoint=None, token=None):
@@ -16,17 +16,21 @@ class SSOAgent(object):
         self.token = token
         self.__resolved = False
         if endpoint:
-            self.BASE_URL = endpoint.rstrip('/')
+            self.ENDPOINT_URL = endpoint.rstrip('/')
 
     @property
     def authentication_route(self):
-        return self.ROUTE['web'].format(api_key=self.SSO_API_KEY)
+        return self.ENDPOINT_URL + self.ROUTE['web'].format(api_key=self.SSO_API_KEY)
 
     @property
     def response(self):
         if self._response is None:
             self._response = self.process_verify_request(self.token)
         return self._response
+
+    @property
+    def response_state(self):
+        return self.response['body']['state']
 
     def set_token(self, token):
         self.token = token
@@ -39,11 +43,14 @@ class SSOAgent(object):
         # state can be one of : VERIFIED, EXPIRED, INCOMPLETE, INVALID_ID, UNAUTHORIZED, INVALID_CREDENTIALS
 
         """
-        url = self.ROUTE['verify'].format(token=token)
+        url = self.ENDPOINT_URL + self.ROUTE['verify'].format(token=token)
+        print("Verifying AT: ", url)
         resp = requests.get(url, headers={
             'X-ApiKey': self.SSO_API_KEY,
             'X-ApiSecret': self.SSO_API_SECRET,
         })
+        if resp.status_code >= 500:
+            return {'body': {'state': 'INTERNAL_SERVER_ERROR'}, 'auth': None, 'status_code': resp.status_code}
         return {'body': resp.json(), 'status_code': resp.status_code}
 
     def get_user_details(self):
