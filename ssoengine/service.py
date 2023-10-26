@@ -1,28 +1,58 @@
 import requests
 
 
-class DjSSO(object):
-    BASE_URL = 'http://localhost:8000'
+class SSOAgent(object):
+    BASE_URL = 'http://localhost:8000'          # endpoint of deployed sso service
+    registration_features = ('username', 'email', 'first_name', 'last_name')
+    ROUTE = {
+        'web': '/sso/web/{api_key}/',
+        'verify': '/sso/web/{token}/'
+    }
 
-    def __init__(self, api_key=None, api_secret=None):
-        self.DJ_SSO_API_KEY = api_key
-        self.DJ_SSO_API_SECRET = api_secret
+    def __init__(self, api_key=None, api_secret=None, endpoint=None, token=None):
+        self.SSO_API_KEY = api_key
+        self.SSO_API_SECRET = api_secret
+        self._response = None
+        self.token = token
+        self.__resolved = False
+        if endpoint:
+            self.BASE_URL = endpoint.rstrip('/')
 
     @property
     def authentication_route(self):
-        return f'{self.BASE_URL}/sso/web/{self.DJ_SSO_API_KEY}/'
+        return self.ROUTE['web'].format(api_key=self.SSO_API_KEY)
 
-    def get_user_details(self, token):
-        url = f'{self.BASE_URL}/sso/web/{token}/verify-details'
-        response = requests.get(url, headers={
-            'X-ApiKey': self.DJ_SSO_API_KEY,
-            'X-ApiSecret': self.DJ_SSO_API_SECRET,
-        }).json()
-        if response['state'] == 'VERIFIED':        # VERIFIED, EXPIRED, INCOMPLETE, INVALID
-            return response['auth']
+    @property
+    def response(self):
+        if self._response is None:
+            self._response = self.process_verify_request(self.token)
+        return self._response
 
+    def set_token(self, token):
+        self.token = token
 
+    def process_verify_request(self, token):
+        """
+        API Response will contain these parameters: {'state','auth','txn_date','txn_id'}
+            Where auth is optional[dict] which contains these parameters: {permitted_features, features}
+            Where features contains the information of the user such as username, email, date_joined e.t.c.
+        # state can be one of : VERIFIED, EXPIRED, INCOMPLETE, INVALID_ID, UNAUTHORIZED, INVALID_CREDENTIALS
 
+        """
+        url = self.ROUTE['verify'].format(token=token)
+        resp = requests.get(url, headers={
+            'X-ApiKey': self.SSO_API_KEY,
+            'X-ApiSecret': self.SSO_API_SECRET,
+        })
+        return {'body': resp.json(), 'status_code': resp.status_code}
 
+    def get_user_details(self):
+        """
+        This function can be used by normal Python packages and can get the data as return.
+        for Django based applications. You can use the SSOAuthenticationMiddleware to process.
+        """
+        return self.response['body']['auth']
 
+    def get_registration_features(self):
+        return self.registration_features
 
